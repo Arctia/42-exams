@@ -72,7 +72,7 @@ int	inside(float start, float point, float end)
 	return (0);
 }
 
-int	inside_rect(int x, int y, t_rect r)
+int	inside_rect_old(int x, int y, t_rect r)
 {
 	float		xs = r.x * (1.0000000);
 	float		ys = r.y * (1.0000000);
@@ -108,6 +108,38 @@ int	inside_rect(int x, int y, t_rect r)
 		if (inside(xs, x, xe) && inside(ys, y, ye))
 			return (1);
 	}
+	return (0);
+}
+
+int	inside_rect(float x, float y, t_rect r)
+{
+	float f = 1;
+
+	float xs = r.x;
+	float ys = r.y;
+	float xe = r.x + r.width;
+	float ye = r.y + r.height;
+
+	// not in rectangle, out of boundary
+	if (x < xs || xe < x)
+		return (0);
+	else if (y < ys || ye < y)
+		return (0);
+
+	float dxs = x - xs;
+	float dys = y - ys;
+	float dxe = xe - x;
+	float dye = ye - y;
+	
+	// on border
+	if (dxs < f || dxe < f || dys < f || dye < f)
+		return (1);
+
+	// should fill?
+	if (r.r == 'R')
+		return (1);
+	else
+		return (0);
 	return (0);
 }
 
