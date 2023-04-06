@@ -10,6 +10,9 @@
 #define ERR_ARGUMENTS "Error: argument\n"
 #define ERR_OPERATION "Error: Operation file corrupted\n"
 
+// command to run all examples 
+// for x in {0..12}; do ./paint examples/$x > file1; ./opaint examples/$x > file2; diff file1 file2; done
+
 typedef struct s_rules
 {
 	int		width;
@@ -132,31 +135,24 @@ void	draw_rectangle(t_rules rule, int **mtx, t_rect r)
 	}
 }
 
-int	scan_file(FILE *file)
+int **create_mtx(t_rules rule)
 {
-	int	inputs;
-
-	t_rules rule;
-	rule.width = 0;
-	rule.height = 0;
-	rule.bg_char = '\0';
-
-	inputs = fscanf(file, "%i %i %c\n", &rule.width, &rule.height, &rule.bg_char);
-	if (inputs != 3
-		|| !(rule.width > 0 && rule.width <= 300)
-		|| !(rule.height > 0 && rule.height <= 300))
-		return (stamp_error(ERR_OPERATION));
-
-	// allocate matrix
+	int	y = 0;
+	int	x = 0;
+	
 	int **mtx;
 	mtx = malloc(sizeof(int *) * (rule.height + 1));
-	int y = 0;
+	if (!mtx)
+		return (NULL);
 	while (y < rule.height)
-		mtx[y++] = malloc(sizeof(int) * (rule.width + 1));
+	{
+		mtx[y] = malloc(sizeof(int) * (rule.width + 1));
+		if (!mtx[y++])
+			return (NULL);
+	}
 
 	// fill field with bg and null terminate them
 	y = 0;
-	int x = 0;
 	while (y < rule.height)
 	{
 		x = 0;
@@ -169,6 +165,48 @@ int	scan_file(FILE *file)
 		y++;
 	}
 	mtx[y] = NULL;
+	return (mtx);
+}
+
+void	print_matrix(t_rules rule, int **mtx)
+{
+	int	x = 0;
+	int	y = 0;
+
+	while (y < rule.height)
+	{
+		x = 0;
+		while (x < rule.width)
+		{
+			write(1, &mtx[y][x], 1);
+			x++;
+		}
+		write(1, "\n", 1);
+		y++;
+	}
+}
+
+int	scan_file(FILE *file)
+{
+	int	inputs;
+
+	// creating rules
+	t_rules rule;
+	rule.width = 0;
+	rule.height = 0;
+	rule.bg_char = '\0';
+
+	inputs = fscanf(file, "%d %d %c\n", &rule.width, &rule.height, &rule.bg_char);
+	if (inputs != 3
+		|| !(rule.width > 0 && rule.width <= 300)
+		|| !(rule.height > 0 && rule.height <= 300))
+		return (stamp_error(ERR_OPERATION));
+
+	// allocate matrix
+	int **mtx;
+	mtx = create_mtx(rule);
+	if (!mtx)
+		return (stamp_error_free(ERR_OPERATION, mtx));
 
 	// init rectangle
 	t_rect	rect;
@@ -193,18 +231,8 @@ int	scan_file(FILE *file)
 		return (stamp_error_free(ERR_OPERATION, mtx));
 
 	// print the result
-	y = 0;
-	while (y < rule.height)
-	{
-		x = 0;
-		while (x < rule.width)
-		{
-			write(1, &mtx[y][x], 1);
-			x++;
-		}
-		write(1, "\n", 1);
-		y++;
-	}
+	print_matrix(rule, mtx);
+	
 	free_matrix(mtx);
 	return (0);
 }
@@ -217,7 +245,7 @@ int	main(int argc, char *argv[])
 	FILE *file;
 	file = fopen(argv[1], "r");
 	if (!file)
-		return (stamp_error(ERR_ARGUMENTS));
+		return (stamp_error(ERR_OPERATION));
 
 	int	err = scan_file(file);
 	fclose(file);
