@@ -148,7 +148,10 @@ int **create_mtx(t_rules rule)
 	{
 		mtx[y] = malloc(sizeof(int) * (rule.width + 1));
 		if (!mtx[y++])
+		{
+			free_matrix(mtx);
 			return (NULL);
+		}
 	}
 
 	// fill field with bg and null terminate them
@@ -202,7 +205,7 @@ int	scan_file(FILE *file)
 		|| !(rule.height > 0 && rule.height <= 300))
 		return (stamp_error(ERR_OPERATION));
 
-	// allocate matrix
+	// allocate matrix and fill with bg_char
 	int **mtx;
 	mtx = create_mtx(rule);
 	if (!mtx)
@@ -232,7 +235,7 @@ int	scan_file(FILE *file)
 
 	// print the result
 	print_matrix(rule, mtx);
-	
+
 	free_matrix(mtx);
 	return (0);
 }
