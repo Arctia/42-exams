@@ -34,6 +34,13 @@ void	print(char *str)
 		write(1, &(*str++), 1);
 }
 
+int	stamp_error(char *str)
+{
+	print(str);
+	return (1);
+}
+
+
 void	free_matrix(int	**mtx)
 {
 	int	y = 0;
@@ -44,6 +51,13 @@ void	free_matrix(int	**mtx)
 			free(mtx[y++]);
 		free(mtx);
 	}
+}
+
+int	stamp_error_free(char *str, int **mtx)
+{
+	print(str);
+	free_matrix(mtx);
+	return (1);
 }
 
 int	inputs_are_good(t_rect *r)
@@ -96,8 +110,7 @@ int	inside_rect(float x, float y, t_rect r)
 	// should fill?
 	if (r.r == 'R')
 		return (1);
-	else
-		return (0);
+
 	return (0);
 }
 
@@ -121,47 +134,21 @@ void	draw_rectangle(t_rules rule, int **mtx, t_rect r)
 
 int	scan_file(FILE *file)
 {
-	t_rules rule;
 	int	inputs;
 
+	t_rules rule;
 	rule.width = 0;
 	rule.height = 0;
 	rule.bg_char = '\0';
-
 
 	inputs = fscanf(file, "%i %i %c\n", &rule.width, &rule.height, &rule.bg_char);
 	if (inputs != 3
 		|| !(rule.width > 0 && rule.width <= 300)
 		|| !(rule.height > 0 && rule.height <= 300))
-	{
-		print(ERR_OPERATION);
-		return (2);
-	}
-
-	t_rect	rect;
-	rect.r = 'r';
-	rect.x = 0.000000;
-	rect.y = 0.000000;
-	rect.width = 0.000000;
-	rect.height = 0.000000;
-	rect.chr = '\0';
-
-	inputs = fscanf(file, "%c %f %f %f %f %c\n", &(rect.r), &rect.x, &rect.y, &rect.width, &rect.height, &rect.chr);
-	
-	// init mtx
-
-
-	// printf("%i %i %c\n", rule.width, rule.height, rule.bg_char);
-	// printf("%c %f %f %f %f %c\n", rect.r, rect.x, rect.y, rect.width, rect.height, rect.chr);
-	//exit(0);
-	if (inputs != -1 && inputs != 6)
-	{
-		print(ERR_OPERATION);
-		return (2);
-	}
+		return (stamp_error(ERR_OPERATION));
 
 	// allocate matrix
-	int **mtx; // [rule.height + 1][rule.width + 1];
+	int **mtx;
 	mtx = malloc(sizeof(int *) * (rule.height + 1));
 	int y = 0;
 	while (y < rule.height)
@@ -181,28 +168,29 @@ int	scan_file(FILE *file)
 		mtx[y][x] = '\0';
 		y++;
 	}
+	mtx[y] = NULL;
+
+	// init rectangle
+	t_rect	rect;
+	rect.r = 'r';
+	rect.x = 0.0;
+	rect.y = 0.0;
+	rect.width = 0.0;
+	rect.height = 0.0;
+	rect.chr = '\0';
 
 	// write into matrix the rectangle
+	inputs = fscanf(file, "%c %f %f %f %f %c\n", &(rect.r), &rect.x, &rect.y, &rect.width, &rect.height, &rect.chr);
 	while (inputs == 6)
 	{
 		if (!inputs_are_good(&rect))
-		{
-			print(ERR_OPERATION);
-			free_matrix(mtx);
-			return (2);
-		}
-		// write into mtx the rectangle
+			return (stamp_error_free(ERR_OPERATION, mtx));
 		draw_rectangle(rule, mtx, rect);
 		inputs = fscanf(file, "%c %f %f %f %f %c\n", &rect.r, &rect.x, &rect.y, &rect.width, &rect.height, &rect.chr); 
 	}
 
-
-	if (inputs != -1)
-	{
-		print(ERR_OPERATION);
-		free_matrix(mtx);
-		return (2);
-	}
+	if (inputs != -1 && inputs != 6)
+		return (stamp_error_free(ERR_OPERATION, mtx));
 
 	// print the result
 	y = 0;
@@ -224,18 +212,15 @@ int	scan_file(FILE *file)
 int	main(int argc, char *argv[])
 {
 	if (argc != 2)
-	{
-		print(ERR_ARGUMENTS);
-		return (1);
-	}
+		return (stamp_error(ERR_ARGUMENTS));
 
 	FILE *file;
-
 	file = fopen(argv[1], "r");
 	if (!file)
-	{
-		print(ERR_OPERATION);
-		return (2);
-	}
-	return (scan_file(file));
+		return (stamp_error(ERR_ARGUMENTS));
+
+	int	err = scan_file(file);
+	fclose(file);
+
+	return (err);
 }
