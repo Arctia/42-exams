@@ -58,81 +58,39 @@ int	inputs_are_good(t_rect *r)
 	return (TRUE); 
 }
 
-int on_axe(float val)
+int outside_borders(float dxs, float dxe, float dys, float dye)
 {
-	if (val >= 0 && val < 1.0000000)
+	if (dxs < 0.0 || dxe < 0.0 || dys < 0.0 || dye < 0.0)
 		return (1);
 	return (0);
 }
 
-int	inside(float start, float point, float end)
+int on_border(float dxs, float dxe, float dys, float dye)
 {
-	if (point <= end && point >= start)
+	if (dxs < 1.0 || dxe < 1.0 || dys < 1.0 || dye < 1.0)
 		return (1);
-	return (0);
-}
-
-int	inside_rect_old(int x, int y, t_rect r)
-{
-	float		xs = r.x * (1.0000000);
-	float		ys = r.y * (1.0000000);
-	float		xe = (r.x + r.width) * 1.0000000;
-	float		ye = (r.y + r.height) * 1.0000000;
-
-	float	diff_xs = (float) x - xs;
-	float	diff_ys = (float) y - ys;
-	float	diff_xe = xe - (float) x;
-	float	diff_ye = ye - (float) y;
-
-	if ((int) xe == (int) xs || (int) ys == (int) ye)
-		return (0);
-
-	if (r.fill == 0)
-	{
-		if (on_axe(diff_xs) && (on_axe(diff_ys) || on_axe(diff_ye)))
-		  	return (1);
-		else if (on_axe(diff_xe) && (on_axe(diff_ys) || on_axe(diff_ye)))
-		 	return (1);
-
-		if (on_axe(diff_xs) && (inside(ys, y, ye)))
-			return (1);
-		if (on_axe(diff_xe) && (inside(ys, y, ye)))
-			return (1);
-		if (on_axe(diff_ys) && inside(xs, x, xe))
-			return (1);
-		if (on_axe(diff_ye) && inside(xs, x, xe))
-			return (1);
-	}
-	else if (r.fill == 1) 
-	{	
-		if (inside(xs, x, xe) && inside(ys, y, ye))
-			return (1);
-	}
 	return (0);
 }
 
 int	inside_rect(float x, float y, t_rect r)
 {
-	float f = 1;
-
 	float xs = r.x;
 	float ys = r.y;
 	float xe = r.x + r.width;
 	float ye = r.y + r.height;
 
-	// not in rectangle, out of boundary
-	if (x < xs || xe < x)
-		return (0);
-	else if (y < ys || ye < y)
-		return (0);
-
+	// border distances
 	float dxs = x - xs;
 	float dys = y - ys;
 	float dxe = xe - x;
 	float dye = ye - y;
-	
+
+	// not in rectangle, out of boundary
+	if (outside_borders(dxs, dxe, dys, dye))
+		return (0);
+
 	// on border
-	if (dxs < f || dxe < f || dys < f || dye < f)
+	if (on_border(dxs, dxe, dys, dye))
 		return (1);
 
 	// should fill?
