@@ -70,7 +70,7 @@ int	inputs_are_good(t_rect *r)
 		return (FALSE);
 	if (r->r == 'R')
 		r->fill = TRUE;
-	if (!(r->width > 0 || r->height > 0))
+	if (!(r->width > 0.0000000 && r->height > 0.0000000))
 		return (FALSE);
 	return (TRUE); 
 }

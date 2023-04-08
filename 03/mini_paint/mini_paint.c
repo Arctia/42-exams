@@ -30,7 +30,7 @@ int	stamp_error(char *str)
 	return (1);
 }
 
-int	free_mtx(int **mtx)
+void	free_mtx(int **mtx)
 {
 	int	y;
 
@@ -74,7 +74,7 @@ int	drawable(float x, float y, t_circle circle)
 	distance = sqrtf(powf(circle.x - x, 2) + powf(circle.y - y, 2));
 	if (distance <= circle.r)
 	{
-		if (circle.r - distance <= 1.000000)
+		if (circle.r - distance < 1.000000)
 			return (1);
 		if (circle.c == 'C')
 			return (1);
