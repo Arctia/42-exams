@@ -1,27 +1,51 @@
 #include <stdio.h>
-#include <math.h>
-#include <stdlib.h>
 #include <unistd.h>
+#include <stdlib.h>
+#include <math.h>
 
-#define ERR_ARGUMENTS "Error: argument\n"
-#define ERR_OPERATION "Error: Operation file corrupted\n"
+#define ERR_ARG "Error: argument\n"
+#define ERR_OP "Error: Operation file corrupted\n"
 
 typedef struct s_rules
 {
-	int		w; // 0 < w <= 300
-	int		h;
-	char	c;
-} t_rules;
+	int		w;
+	int 	h;
+	char 	c;
+
+}	t_rules;
 
 typedef struct s_circle
 {
-	char	c; // c || C
-	float	x; 
+	char	c;
+	float	x;
 	float	y;
-	float	r; // r > 0
-	char	chr;
+	float	r;
+	char	f;
+}	t_circle;
 
-} t_circle;
+t_rules	init_rules(void)
+{
+	t_rules r;
+
+	r.w = 0;
+	r.h = 0;
+	r.c = 0;
+
+	return (r);
+}
+
+t_circle init_circle(void)
+{
+	t_circle c;
+
+	c.c = 'c';
+	c.x = 0.0;
+	c.y = 0.0;
+	c.r = 0.0;
+	c.f = 0;
+	
+	return (c);
+}
 
 int	stamp_error(char *str)
 {
@@ -32,141 +56,87 @@ int	stamp_error(char *str)
 
 void	free_mtx(int **mtx)
 {
-	int	y;
+	int i;
 
-	y = 0;
+	i = 0;
 	if (mtx)
 	{
-		while (mtx[y])
-			free(mtx[y++]);
+		while (mtx[i])
+			free(mtx[i++]);
 		free(mtx);
 	}
 }
 
-int stamp_free(char *str, int **mtx)
+int	stamp_error_free(char *str, int **mtx)
 {
 	free_mtx(mtx);
 	return (stamp_error(str));
 }
 
-int invalid_size(t_rules rl)
+int	rules_ok(t_rules r)
 {
-	if (!(rl.w <= 300 && rl.w > 0))
-		return (1);
-	if (!(rl.h <= 300 && rl.h > 0))
-		return (1);
-	return (0);
-}
-
-int	inputs_are_good(t_circle circle)
-{
-	if (circle.c != 'c' && circle.c != 'C')
+	if (!(r.w > 0 && r.w <= 300))
 		return (0);
-	if (circle.r <= 0)
+	if (!(r.h > 0 && r.h <= 300))
 		return (0);
 	return (1);
 }
 
-int	drawable(float x, float y, t_circle circle)
+int circle_ok(t_circle c)
 {
-	float distance;
-
-	distance = sqrtf(powf(circle.x - x, 2) + powf(circle.y - y, 2));
-	if (distance <= circle.r)
-	{
-		if (circle.r - distance < 1.000000)
-			return (1);
-		if (circle.c == 'C')
-			return (1);
-	}
-	return (0);
+	if (!(c.c == 'c' || c.c == 'C'))
+		return (0);
+	if (!(c.r > 0.0))
+		return (0);
+	return (1);
 }
 
-void	draw_circle(t_rules rules, int **mtx, t_circle circle)
+int	**create_mtx(t_rules r)
 {
-	int	x = 0;
+	int **mtx;
+	int x = 0;
 	int y = 0;
 
-	while (y < rules.h)
+	mtx = malloc(sizeof(int *) * (r.h + 1));
+	if (!mtx)
+		return (NULL);
+	while (y < r.h)
 	{
-		x = 0;
-		while (x < rules.w)
+		mtx[y] = malloc(sizeof(int) * (r.w + 1));
+		if (!mtx[y])
 		{
-			if (drawable(x, y, circle))
-				mtx[y][x] = circle.chr;
-			x++;
+			free_mtx(mtx);
+			return (NULL);
 		}
 		y++;
 	}
-}
 
-int scan_file(FILE *file)
-{
-	int		inputs;
-
-	t_rules rules;
-	rules.w = 0;
-	rules.h = 0;
-	rules.c = '\0';
-
-	inputs = fscanf(file, "%d %d %c\n", &rules.w, &rules.h, &rules.c);
-	if (inputs != 3 || invalid_size(rules))
-		return (stamp_error(ERR_OPERATION));
-
-	t_circle circle;
-	circle.c = '\0';
-	circle.x = 0.0;
-	circle.y = 0.0;
-	circle.r = 0.0;
-	circle.chr = '\0';
-
-	inputs = fscanf(file, "%c %f %f %f %c\n", &circle.c, &circle.x, &circle.y, &circle.r, &circle.chr);
-	if (inputs != -1 && inputs != 5)
-		return (stamp_error(ERR_OPERATION));
-	
-	// create mtx to be printed
-	int x;
-	int y;
-
-	int	**mtx;
-	mtx = malloc(sizeof(int *) * (rules.h + 1));
 	y = 0;
-	while (y < rules.h)
-		mtx[y++] = malloc(sizeof(int) * (rules.w + 1));
-
-	// fill mtx with background char
-	y = 0;
-	while (y < rules.h)
+	while (y < r.h)
 	{
 		x = 0;
-		while (x < rules.w)
+		while (x < r.w)
 		{
-			mtx[y][x] = rules.c;
+			mtx[y][x] = r.c;
 			x++;
 		}
 		mtx[y][x] = '\0';
 		y++;
 	}
 	mtx[y] = NULL;
-		
-	// write circle into matrix
-	while (inputs == 5)
-	{
-		if (!inputs_are_good(circle))
-			return (stamp_free(ERR_OPERATION, mtx));
-		draw_circle(rules, mtx, circle);
-		inputs = fscanf(file, "%c %f %f %f %c\n", &circle.c, &circle.x, &circle.y, &circle.r, &circle.chr);
-	}
+	
+	return (mtx);
+}
 
-	if (inputs != -1)
-		return (stamp_free(ERR_OPERATION, mtx));
+void	stamp_mtx(int **mtx)
+{
+	int x = 0;
+	int y = 0;
 
-	// stamp circles
-	y = 0;
-	while (y < rules.h)
+	while (mtx[y])
 	{
 		x = 0;
-		while (x < rules.w)
+		while (mtx[y][x])
 		{
 			write(1, &(mtx[y][x]), 1);
 			x++;
@@ -174,23 +144,84 @@ int scan_file(FILE *file)
 		write(1, "\n", 1);
 		y++;
 	}
+}
+
+int drawable(float x, float y, t_circle c)
+{
+	float ds;
+
+	ds = sqrtf(powf(c.x - x, 2.) + powf(c.y - y, 2.));
+	if (ds <= c.r)
+	{
+		if (c.r - ds < 1.000000)
+			return (1);
+		if (c.c == 'C')
+			return (1);
+	}
+	return (0);
+}
+
+void	write_circle(t_rules r, int **mtx, t_circle c)
+{
+	int x = 0;
+	int y = 0;
+
+	while (y < r.h)
+	{
+		x = 0;
+		while (x < r.w)
+		{
+			if (drawable(x, y, c))
+				mtx[y][x] = c.f;
+			x++;
+		}
+		y++;
+	}
+
+}
+
+int	scan_file(FILE *file)
+{
+	int inputs;
+	t_rules rules = init_rules();
+	t_circle circle = init_circle();
+
+	inputs = fscanf(file, "%d %d %c\n", &rules.w, &rules.h, &rules.c);
+	if (inputs != 3 || !rules_ok(rules))
+		return (stamp_error(ERR_OP));
+
+	int **mtx = create_mtx(rules);
+	if (!mtx)
+		return (stamp_error(ERR_OP));
+	
+	inputs = fscanf(file, "%c %f %f %f %c\n", &circle.c, &circle.x, &circle.y, &circle.r, &circle.f);
+	while (inputs == 5)
+	{
+		if (!circle_ok(circle))
+			return (stamp_error_free(ERR_OP, mtx));
+		write_circle(rules, mtx, circle);
+		inputs = fscanf(file, "%c %f %f %f %c\n", &circle.c, &circle.x, &circle.y, &circle.r, &circle.f);
+	}
+
+	if (inputs != -1)
+		return (stamp_error_free(ERR_OP, mtx));
+
+	stamp_mtx(mtx);
 	free_mtx(mtx);
 	return (0);
 }
 
-int main(int argc, char **argv)
+int	main(int argc, char **argv)
 {
 	if (argc != 2)
-		return (stamp_error(ERR_ARGUMENTS));
+		return (stamp_error(ERR_ARG));
 
-	// open file
 	FILE *file;
 	file = fopen(argv[1], "r");
 	if (!file)
-		return (stamp_error(ERR_OPERATION));
+		return (stamp_error(ERR_OP));
 
-	// scan file
-	int err = scan_file(file);
+	int	err = scan_file(file);
 	fclose(file);
 	return (err);
 }

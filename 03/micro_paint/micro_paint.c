@@ -1,190 +1,183 @@
 
 #include <stdio.h>
 #include <unistd.h>
-#include <fcntl.h>
 #include <stdlib.h>
 
-#define TRUE 1
-#define FALSE 0
-
-#define ERR_ARGUMENTS "Error: argument\n"
 #define ERR_OPERATION "Error: Operation file corrupted\n"
-
-// command to run all examples 
-// for x in {0..12}; do ./paint examples/$x > file1; ./opaint examples/$x > file2; diff file1 file2; done
+#define ERR_ARGUMENTS "Error: argument\n"
 
 typedef struct s_rules
 {
-	int		width;
-	int		height;
-	char	bg_char;
-} t_rules;
+	int		w;
+	int		h;
+	char	c;
+}	t_rules;
 
 typedef struct s_rect
 {
 	char	r;
 	float	x;
 	float	y;
-	float	width;
-	float	height;
-	char	chr;
-	int		fill;
-} t_rect;
+	float	w;
+	float	h;
+	char	c;
+} 	t_rect;
 
-void	print(char *str)
+t_rules	init_rules(void)
 {
-	while (*str)
-		write(1, &(*str++), 1);
+	t_rules r;
+
+	r.w = 0;
+	r.h = 0;
+	r.c = 0;
+
+	return (r);
+}
+
+t_rect init_rect(void)
+{
+	t_rect r;
+
+	r.r = 'r';
+	r.x = 0.0;
+	r.y = 0.0;
+	r.w = 0.0;
+	r.h = 0.0;
+	r.c = 0;
+
+	return (r);
 }
 
 int	stamp_error(char *str)
 {
-	print(str);
+	while (*str)
+		write(1, &(*str++), 1);
 	return (1);
 }
 
-
-void	free_matrix(int	**mtx)
+void	free_matrix(int **mtx)
 {
-	int	y = 0;
+	int	i;
 
+	i = 0;
 	if (mtx)
 	{
-		while (mtx[y])
-			free(mtx[y++]);
+		while (mtx[i])
+			free(mtx[i++]);
 		free(mtx);
 	}
 }
 
 int	stamp_error_free(char *str, int **mtx)
 {
-	print(str);
 	free_matrix(mtx);
+	return stamp_error(str);
+}
+
+int	**create_mtx(t_rules r)
+{
+	int	**mtx;
+	int	x;
+	int	y;
+
+	y = 0;
+	mtx = malloc(sizeof(int *) * (r.h + 1));
+	if (!mtx)
+		return (NULL);
+	while (y < r.h)
+	{
+		mtx[y] = malloc(sizeof(int) * (r.w + 1));
+		if (!mtx[y])
+		{
+			free_matrix(mtx);
+			return (NULL);
+		}
+		y++;
+	}
+	mtx[y] = NULL;
+
+	y = 0;
+	while (y < r.h)
+	{
+		x = 0;
+		while (x < r.w)
+			mtx[y][x++] = r.c;
+		mtx[y][x] = 0;
+		y++;
+	}
+
+	return (mtx);
+}
+
+int rules_ok(t_rules r)
+{
+	if (!(r.w > 0 && r.w <= 300))
+		return (0);
+	if (!(r.h > 0 && r.h <= 300))
+		return (0);
 	return (1);
 }
 
-int	inputs_are_good(t_rect *r)
+int	rect_ok(t_rect r)
 {
-	r->fill = FALSE;
-	if (!(r->r == 'r' || r->r == 'R'))
-		return (FALSE);
-	if (r->r == 'R')
-		r->fill = TRUE;
-	if (!(r->width > 0.0000000 && r->height > 0.0000000))
-		return (FALSE);
-	return (TRUE); 
+	if (!(r.r == 'r' || r.r == 'R'))
+		return (0);
+	if (!(r.w > 0.0 && r.h > 0.0))
+		return (0);
+	return (1);
 }
 
-int outside_borders(float dxs, float dxe, float dys, float dye)
+void	stamp_mtx(int **mtx)
 {
-	if (dxs < 0.0 || dxe < 0.0 || dys < 0.0 || dye < 0.0)
-		return (1);
-	return (0);
+	int x = 0;
+	int	y = 0;
+
+	while (mtx[y])
+	{
+		x = 0;
+		while (mtx[y][x])
+			write(1, &(mtx[y][x++]), 1);
+		write(1, "\n", 1);
+		y++;
+	}
 }
 
-int on_border(float dxs, float dxe, float dys, float dye)
-{
-	if (dxs < 1.0 || dxe < 1.0 || dys < 1.0 || dye < 1.0)
-		return (1);
-	return (0);
-}
-
-int	inside_rect(float x, float y, t_rect r)
+int drawable(float x, float y, t_rect r)
 {
 	float xs = r.x;
 	float ys = r.y;
-	float xe = r.x + r.width;
-	float ye = r.y + r.height;
+	float xe = r.x + r.w;
+	float ye = r.y + r.h;
 
-	// border distances
+	if (x < xs || x > xe || y < ys || y > ye)
+		return (0);
+
 	float dxs = x - xs;
 	float dys = y - ys;
 	float dxe = xe - x;
 	float dye = ye - y;
 
-	// not in rectangle, out of boundary
-	if (outside_borders(dxs, dxe, dys, dye))
-		return (0);
-
-	// on border
-	if (on_border(dxs, dxe, dys, dye))
+	if (dxs < 1.0 || dys < 1.0 || dxe < 1.0 || dye < 1.0)
 		return (1);
-
-	// should fill?
 	if (r.r == 'R')
 		return (1);
-
 	return (0);
 }
 
-void	draw_rectangle(t_rules rule, int **mtx, t_rect r)
+void	write_rect(t_rules rules, int **mtx, t_rect rect)
 {
-	int	x = 0;
-	int	y = 0;
+	int x = 0;
+	int y = 0;
 
-	while (y < rule.height)
+	while (y < rules.h)
 	{
 		x = 0;
-		while (x < rule.width)
+		while (x < rules.w)
 		{
-			if (inside_rect(x, y, r))
-				mtx[y][x] = r.chr;
+			if (drawable(x, y, rect))
+				mtx[y][x] = rect.c;
 			x++;
 		}
-		y++;
-	}
-}
-
-int **create_mtx(t_rules rule)
-{
-	int	y = 0;
-	int	x = 0;
-	
-	int **mtx;
-	mtx = malloc(sizeof(int *) * (rule.height + 1));
-	if (!mtx)
-		return (NULL);
-	while (y < rule.height)
-	{
-		mtx[y] = malloc(sizeof(int) * (rule.width + 1));
-		if (!mtx[y++])
-		{
-			free_matrix(mtx);
-			return (NULL);
-		}
-	}
-
-	// fill field with bg and null terminate them
-	y = 0;
-	while (y < rule.height)
-	{
-		x = 0;
-		while (x < rule.width)
-		{
-			mtx[y][x] = rule.bg_char;
-			x++;
-		}
-		mtx[y][x] = '\0';
-		y++;
-	}
-	mtx[y] = NULL;
-	return (mtx);
-}
-
-void	print_matrix(t_rules rule, int **mtx)
-{
-	int	x = 0;
-	int	y = 0;
-
-	while (y < rule.height)
-	{
-		x = 0;
-		while (x < rule.width)
-		{
-			write(1, &mtx[y][x], 1);
-			x++;
-		}
-		write(1, "\n", 1);
 		y++;
 	}
 }
@@ -192,66 +185,46 @@ void	print_matrix(t_rules rule, int **mtx)
 int	scan_file(FILE *file)
 {
 	int	inputs;
+	t_rules rules = init_rules();
+	t_rect rect = init_rect();
 
-	// creating rules
-	t_rules rule;
-	rule.width = 0;
-	rule.height = 0;
-	rule.bg_char = '\0';
-
-	inputs = fscanf(file, "%d %d %c\n", &rule.width, &rule.height, &rule.bg_char);
-	if (inputs != 3
-		|| !(rule.width > 0 && rule.width <= 300)
-		|| !(rule.height > 0 && rule.height <= 300))
+	inputs = fscanf(file, "%d %d %c\n", &rules.w, &rules.h, &rules.c);
+	if (inputs != 3 || !rules_ok(rules))
 		return (stamp_error(ERR_OPERATION));
 
-	// allocate matrix and fill with bg_char
-	int **mtx;
-	mtx = create_mtx(rule);
+	int	**mtx = create_mtx(rules);
 	if (!mtx)
-		return (stamp_error_free(ERR_OPERATION, mtx));
+		return (stamp_error(ERR_OPERATION));
 
-	// init rectangle
-	t_rect	rect;
-	rect.r = 'r';
-	rect.x = 0.0;
-	rect.y = 0.0;
-	rect.width = 0.0;
-	rect.height = 0.0;
-	rect.chr = '\0';
-
-	// write into matrix the rectangle
-	inputs = fscanf(file, "%c %f %f %f %f %c\n", &(rect.r), &rect.x, &rect.y, &rect.width, &rect.height, &rect.chr);
+	inputs = fscanf(file, "%c %f %f %f %f %c\n", &rect.r, &rect.x, &rect.y, &rect.w, &rect.h, &rect.c);
 	while (inputs == 6)
 	{
-		if (!inputs_are_good(&rect))
+		if (!rect_ok(rect))
 			return (stamp_error_free(ERR_OPERATION, mtx));
-		draw_rectangle(rule, mtx, rect);
-		inputs = fscanf(file, "%c %f %f %f %f %c\n", &rect.r, &rect.x, &rect.y, &rect.width, &rect.height, &rect.chr); 
+		write_rect(rules, mtx, rect);
+		inputs = fscanf(file, "%c %f %f %f %f %c\n", &rect.r, &rect.x, &rect.y, &rect.w, &rect.h, &rect.c);
 	}
 
-	if (inputs != -1 && inputs != 6)
+	if (inputs != -1)
 		return (stamp_error_free(ERR_OPERATION, mtx));
 
-	// print the result
-	print_matrix(rule, mtx);
-
+	stamp_mtx(mtx);
 	free_matrix(mtx);
 	return (0);
 }
 
-int	main(int argc, char *argv[])
+int	main(int argc, char **argv)
 {
 	if (argc != 2)
-		return (stamp_error(ERR_ARGUMENTS));
+		return stamp_error(ERR_ARGUMENTS);
 
-	FILE *file;
+	FILE	*file;
+
 	file = fopen(argv[1], "r");
 	if (!file)
-		return (stamp_error(ERR_OPERATION));
+		return stamp_error(ERR_OPERATION);
 
-	int	err = scan_file(file);
+	int err = scan_file(file);
 	fclose(file);
-
 	return (err);
 }
