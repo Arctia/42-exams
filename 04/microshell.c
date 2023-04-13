@@ -75,7 +75,7 @@ int	do_pipes(int i, char **argv, int *stdin, char **env)
 	{
 		close(*stdin);
 		close(pipes[1]);
-		//waitpid(-1, NULL, WUNTRACED);
+		waitpid(-1, NULL, WUNTRACED);
 		*stdin = pipes[0];
 	}
 	return (0);
