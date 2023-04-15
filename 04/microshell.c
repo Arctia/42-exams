@@ -49,12 +49,11 @@ int	do_simple_command(int i, char **argv, int *stdin, char **env)
 		if (execute(i, argv, stdin, env))
 			return (1);
 	}
-	else
-	{
-		close(*stdin);
-		waitpid(-1, NULL, WUNTRACED);
-		*stdin = dup(0);
-	}
+
+	close(*stdin);
+	waitpid(-1, NULL, WUNTRACED);
+	*stdin = dup(0);
+
 	return (0);
 }
 
@@ -62,7 +61,8 @@ int	do_pipes(int i, char **argv, int *stdin, char **env)
 {
 	int	pipes[2];
 
-	pipe(pipes);
+	if (pipe(pipes))
+		return (stamp_error(FATAL, NULL));
 	if (!fork())
 	{
 		dup2(pipes[1], 1);
@@ -71,26 +71,21 @@ int	do_pipes(int i, char **argv, int *stdin, char **env)
 		if (execute(i, argv, stdin, env))
 			return (1);
 	}
-	else
-	{
-		close(*stdin);
-		close(pipes[1]);
-		waitpid(-1, NULL, WUNTRACED);
-		*stdin = pipes[0];
-	}
-	return (0);
 
+	close(*stdin);
+	close(pipes[1]);
+	waitpid(-1, NULL, WUNTRACED);
+	*stdin = pipes[0];
+
+	return (0);
 }
 
 int	main(int argc, char **argv, char **env)
 {
 	(void) argc;
 
-	int	stdin;
-	int	i;
-
-	stdin = dup(0);
-	i = 0;
+	int	stdin = dup(0);
+	int	i = 0;
 
 	while (argv[i] && argv[i + 1])
 	{
