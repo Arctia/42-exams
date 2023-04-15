@@ -177,7 +177,6 @@ void	write_circle(t_rules r, int **mtx, t_circle c)
 		}
 		y++;
 	}
-
 }
 
 int	scan_file(FILE *file)
@@ -225,4 +224,3 @@ int	main(int argc, char **argv)
 	fclose(file);
 	return (err);
 }
-
